@@ -1,0 +1,164 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #16181d;
+  color: #e8e8ea;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  display: flex;
+  justify-content: center;
+}
+
+#app {
+  width: 1000px;
+  max-width: 100%;
+  padding: 10px;
+  position: relative;
+}
+
+#hud {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #1f2229;
+  border: 2px solid #33373f;
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+#hud .title {
+  font-weight: bold;
+  font-size: 18px;
+  margin-right: auto;
+}
+
+.stat {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.hud-buttons { display: flex; gap: 8px; }
+
+button {
+  background: #2c313a;
+  color: #e8e8ea;
+  border: 1px solid #454b56;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover { background: #3a4049; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+#canvasWrap {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #33373f;
+}
+
+#gameCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+
+#hotbar {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.hotbar-slot {
+  width: 64px;
+  height: 64px;
+  background: #23262d;
+  border: 2px solid #3a3f49;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  font-size: 22px;
+}
+
+.hotbar-slot.selected {
+  border-color: #f4c430;
+  box-shadow: 0 0 8px rgba(244, 196, 48, 0.6);
+}
+
+.hotbar-slot .slot-key {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  font-size: 10px;
+  color: #999;
+}
+
+.hotbar-slot .slot-name {
+  font-size: 9px;
+  color: #bbb;
+  margin-top: 2px;
+}
+
+.panel {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 700px;
+  background: #1f2229;
+  border: 2px solid #454b56;
+  border-radius: 10px;
+  padding: 14px;
+  z-index: 10;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.panel.hidden { display: none; }
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.panel-title { font-weight: bold; font-size: 15px; }
+
+.tabs { display: flex; gap: 6px; }
+.tab.active { background: #445; border-color: #f4c430; }
+
+.tab-content.hidden { display: none; }
+
+.shop-item, .inv-item, .upgrade-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: #262a32;
+  border: 1px solid #383e48;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.shop-item .info, .upgrade-item .info { flex: 1; }
+.shop-item .name, .upgrade-item .name { font-weight: bold; }
+.shop-item .desc, .upgrade-item .desc { font-size: 12px; color: #aaa; }
+
+.help-text { font-size: 14px; line-height: 1.5; }
+.help-text ol { padding-left: 20px; }
+
+#toastAnchor { position: absolute; }
+
+.close-btn { padding: 2px 8px; }

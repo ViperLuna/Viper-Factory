@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Viper Factory: Plastic Works</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐍</text></svg>" />
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <header id="hud">
+    <div class="title">🐍 Viper Factory</div>
+    <div class="stat">💰 <span id="cashVal">$0</span></div>
+    <div class="stat">🧱 <span id="pelletVal">0</span> pellets</div>
+    <div class="stat">📦 <span id="soldVal">0</span> sold</div>
+    <div class="hud-buttons">
+      <button id="shopBtn">Shop (B)</button>
+      <button id="inventoryBtn">Inventory (I)</button>
+      <button id="helpBtn">How to Play (H)</button>
+    </div>
+  </header>
+
+  <div id="canvasWrap">
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+  </div>
+
+  <div id="hotbar"></div>
+
+  <div id="shopPanel" class="panel hidden">
+    <div class="panel-header">
+      <div class="tabs">
+        <button class="tab active" data-tab="machines">Machines</button>
+        <button class="tab" data-tab="pellets">Pellets</button>
+        <button class="tab" data-tab="upgrades">Upgrades &amp; Staff</button>
+      </div>
+      <button class="close-btn" data-close="shopPanel">✕</button>
+    </div>
+    <div id="shopMachines" class="tab-content"></div>
+    <div id="shopPellets" class="tab-content hidden"></div>
+    <div id="shopUpgrades" class="tab-content hidden"></div>
+  </div>
+
+  <div id="inventoryPanel" class="panel hidden">
+    <div class="panel-header">
+      <div class="panel-title">Inventory (extra machines waiting for a hotbar slot)</div>
+      <button class="close-btn" data-close="inventoryPanel">✕</button>
+    </div>
+    <div id="inventoryGrid" class="tab-content"></div>
+  </div>
+
+  <div id="helpPanel" class="panel hidden">
+    <div class="panel-header">
+      <div class="panel-title">How to Play</div>
+      <button class="close-btn" data-close="helpPanel">✕</button>
+    </div>
+    <div class="tab-content help-text">
+      <p><strong>Goal:</strong> run a plastic factory. Buy machines, staff them, keep them fed with
+      pellets, and haul finished pallets to the warehouse to sell them for cash.</p>
+      <ol>
+        <li>Open the <strong>Shop</strong> and buy a machine. It lands in your hotbar at the bottom.</li>
+        <li>Press the matching number key (or click the slot) to select it, then click an empty
+        floor pad to place it.</li>
+        <li>Click the placed machine and hire an <strong>operator</strong> to staff it &mdash; unstaffed
+        machines never run.</li>
+        <li>Buy <strong>pellets</strong> in the Shop. Your utility worker(s) automatically carry pellets
+        from the depot to any machine running low.</li>
+        <li>Once a machine finishes a pallet, your pallet jack worker(s) automatically haul it to the
+        warehouse and sell it.</li>
+        <li>Click a running machine to give it a small production boost.</li>
+        <li>Spend cash in <strong>Upgrades &amp; Staff</strong> to hire more workers and speed everyone up.</li>
+      </ol>
+      <p>Your progress autosaves in this browser.</p>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
