@@ -1,4 +1,6 @@
-import { MACHINE_TYPES, padCenter, DEPOT, WAREHOUSE } from './config.js';
+import {
+  MACHINE_TYPES, PRODUCTS, padCenter, DEPOT, WAREHOUSE,
+} from './config.js';
 
 let nextId = 1;
 export function makeId() {
@@ -17,6 +19,7 @@ export class Machine {
     this.progress = 0;
     this.readyPallets = 0;
     this.staffed = false;
+    this.productKey = null;
     this.reservedByUtility = null;
     this.reservedByHauler = null;
     const { x, y } = padCenter(row, col);
@@ -28,27 +31,31 @@ export class Machine {
     return MACHINE_TYPES[this.key];
   }
 
+  get product() {
+    return this.productKey ? PRODUCTS[this.productKey] : null;
+  }
+
   get hopperRatio() {
     return this.hopperAmount / this.hopperCapacity;
   }
 
   canRun() {
-    return this.staffed && this.hopperAmount >= this.def.consumePerCycle;
+    return this.staffed && this.product !== null && this.hopperAmount >= this.product.consumePerCycle;
   }
 
-  update(dt) {
+  update(dt, speedMult) {
     if (!this.canRun()) return;
-    this.progress += dt;
-    if (this.progress >= this.def.cycleTime) {
-      this.progress -= this.def.cycleTime;
-      this.hopperAmount -= this.def.consumePerCycle;
+    this.progress += dt * speedMult;
+    if (this.progress >= this.product.cycleTime) {
+      this.progress -= this.product.cycleTime;
+      this.hopperAmount -= this.product.consumePerCycle;
       this.readyPallets += 1;
     }
   }
 
   boostClick(ms) {
     if (!this.canRun()) return false;
-    this.progress = Math.min(this.progress + ms, this.def.cycleTime);
+    this.progress = Math.min(this.progress + ms, this.product.cycleTime);
     return true;
   }
 }
@@ -205,7 +212,7 @@ export class Hauler extends Walker {
           const take = Math.min(this.capacity - this.cargoCount, m.readyPallets);
           m.readyPallets -= take;
           this.cargoCount += take;
-          this.cargoValue += take * m.def.palletValue;
+          this.cargoValue += take * m.product.palletValue;
           m.reservedByHauler = null;
         }
         this.targetMachine = null;

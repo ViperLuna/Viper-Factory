@@ -17,9 +17,18 @@
     <div class="hud-buttons">
       <button id="shopBtn">Shop (B)</button>
       <button id="inventoryBtn">Inventory (I)</button>
+      <button id="slotsBtn">Save Slots</button>
       <button id="helpBtn">How to Play (H)</button>
     </div>
   </header>
+
+  <div id="tutorialBanner" class="hidden">
+    <span id="tutorialText"></span>
+    <div class="tutorial-actions">
+      <button id="tutorialNext" class="hidden">Got it!</button>
+      <button id="tutorialSkip">Skip tutorial</button>
+    </div>
+  </div>
 
   <div id="canvasWrap">
     <canvas id="gameCanvas" width="1000" height="600"></canvas>
@@ -30,15 +39,27 @@
   <div id="shopPanel" class="panel hidden">
     <div class="panel-header">
       <div class="tabs">
-        <button class="tab active" data-tab="machines">Blueprints</button>
-        <button class="tab" data-tab="plastic">Plastic</button>
-        <button class="tab" data-tab="upgrades">Upgrades &amp; Staff</button>
+        <button class="tab active" data-tab="machines">Machines</button>
+        <button class="tab" data-tab="workers">Workers</button>
+        <button class="tab" data-tab="plastic">Material</button>
+        <button class="tab" data-tab="blueprints">Blueprints</button>
+        <button class="tab" data-tab="upgrades">Upgrades</button>
       </div>
       <button class="close-btn" data-close="shopPanel">✕</button>
     </div>
     <div id="shopMachines" class="tab-content"></div>
+    <div id="shopWorkers" class="tab-content hidden"></div>
     <div id="shopPlastic" class="tab-content hidden"></div>
+    <div id="shopBlueprints" class="tab-content hidden"></div>
     <div id="shopUpgrades" class="tab-content hidden"></div>
+  </div>
+
+  <div id="slotsPanel" class="panel hidden">
+    <div class="panel-header">
+      <div class="panel-title">Save Slots</div>
+      <button class="close-btn" data-close="slotsPanel">✕</button>
+    </div>
+    <div id="slotsGrid" class="tab-content"></div>
   </div>
 
   <div id="inventoryPanel" class="panel hidden">
@@ -55,26 +76,30 @@
       <button class="close-btn" data-close="helpPanel">✕</button>
     </div>
     <div class="tab-content help-text">
-      <p><strong>Goal:</strong> run a plastic factory. Buy machine blueprints, staff them, keep them fed
-      with plastic, and haul finished pallets to the warehouse to sell them for cash.</p>
-      <p>The cheapest blueprint is the <strong>Extruder</strong>, which makes straws &mdash; that's your
-      first buy. Every purchase is one-time (no wages), but buying another of the same blueprint or
-      hiring another operator costs more than the last one did.</p>
+      <p><strong>Goal:</strong> run a plastic factory. Buy machines, license new machine types as you
+      grow, load blueprints onto them so they know what to make, staff them, keep them fed with
+      plastic, and haul finished pallets to the warehouse to sell them for cash.</p>
+      <p>Machines and their operators are one-time purchases (no wages), but buying another of the
+      same machine or hiring another operator costs more than the last one did.</p>
       <ol>
-        <li>Open the <strong>Shop</strong> and buy the Extruder blueprint. It lands in your hotbar at
-        the bottom.</li>
+        <li>Open the <strong>Shop → Machines</strong> tab and buy an Extruder. It lands in your
+        hotbar at the bottom.</li>
         <li>Press the matching number key (or click the slot) to select it, then click an empty
         floor pad to place it.</li>
-        <li>Click the placed machine and hire an <strong>operator</strong> to staff it &mdash; unstaffed
-        machines never run, no matter how much plastic they have.</li>
-        <li>Buy <strong>plastic</strong> in the Shop. Your utility worker(s) automatically carry it
-        from the depot to any machine running low.</li>
-        <li>Once a machine finishes a pallet, your pallet jack worker(s) automatically haul it to the
-        warehouse and sell it.</li>
+        <li>In <strong>Shop → Workers</strong>, hire a Utility Worker, a Warehouse Worker, and an
+        operator for your machine &mdash; unstaffed machines never run.</li>
+        <li>Buy <strong>plastic</strong> in <strong>Shop → Material</strong>. Your utility worker(s)
+        automatically carry it from the depot to any machine running low.</li>
+        <li>Buy the <strong>Straws blueprint</strong> in <strong>Shop → Blueprints</strong>, then
+        click your Extruder to load it &mdash; a machine with no blueprint has nothing to build.</li>
+        <li>Once a machine finishes a pallet, your warehouse worker(s) automatically haul it out to
+        sell.</li>
         <li>Click a running machine to give it a small production boost.</li>
-        <li>Spend cash in <strong>Upgrades &amp; Staff</strong> to hire more workers and speed everyone up.</li>
+        <li>Spend cash in <strong>Upgrades</strong> to speed everyone up, carry more, and eventually
+        upgrade your warehouse workers onto towmotors.</li>
       </ol>
-      <p>Your progress autosaves in this browser.</p>
+      <p>A guided tutorial walks you through your first machine step by step &mdash; skip it anytime
+      from the banner. Your progress autosaves in this browser.</p>
     </div>
   </div>
 </div>

@@ -1,19 +1,30 @@
-import { CANVAS_W, CANVAS_H, AUTOSAVE_INTERVAL_MS, CLICK_BOOST_MS } from './config.js';
-import { createInitialState, loadState, saveState, tick, placeFromSlot, gridCellFromPoint, addToast } from './state.js';
+import { CANVAS_W, CANVAS_H, AUTOSAVE_INTERVAL_MS, CLICK_BOOST_MS, TUTORIAL_FAST_FORWARD_MULT } from './config.js';
+import {
+  createInitialState, loadState, saveState, tick, placeFromSlot, gridCellFromPoint,
+  addToast, trySetBlueprint, getActiveSlot,
+} from './state.js';
 import { draw, machineAtPoint } from './render.js';
-import { initUI, render, isAnyPanelOpen, tryHireOperator } from './ui.js';
+import {
+  initUI, render, tryHireOperator, tryAssignBlueprintUI, updateTutorialUI, getTutorialCanvasHint,
+  refreshWorkersTab,
+} from './ui.js';
+import { advanceTutorial } from './tutorial.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-let state = loadState() || createInitialState();
+const activeSlot = getActiveSlot();
+let state = loadState(activeSlot) || createInitialState();
 let hoverCell = null;
 
 function onChange() {
   render(state);
+  updateTutorialUI(state, onChange);
+  refreshWorkersTab();
 }
 
 initUI(state, onChange);
+updateTutorialUI(state, onChange);
 
 function canvasPoint(evt) {
   const rect = canvas.getBoundingClientRect();
@@ -37,6 +48,8 @@ canvas.addEventListener('click', (evt) => {
   if (machine) {
     if (!machine.staffed) {
       tryHireOperator(state, machine, onChange);
+    } else if (!machine.productKey) {
+      tryAssignBlueprintUI(state, machine, trySetBlueprint, onChange);
     } else {
       const boosted = machine.boostClick(CLICK_BOOST_MS);
       if (!boosted) addToast(state, 'Needs plastic to run');
@@ -63,9 +76,10 @@ window.addEventListener('keydown', (evt) => {
   if (key === 'i') document.getElementById('inventoryBtn').click();
   if (key === 'h') document.getElementById('helpBtn').click();
   if (key === 'escape') {
-    ['shopPanel', 'inventoryPanel', 'helpPanel'].forEach((id) => {
+    ['shopPanel', 'inventoryPanel', 'helpPanel', 'slotsPanel'].forEach((id) => {
       document.getElementById(id).classList.add('hidden');
     });
+    state.uiFlags.shopOpen = false;
   }
 });
 
@@ -73,22 +87,27 @@ let lastTime = performance.now();
 let sinceSave = 0;
 
 function loop(now) {
-  const dt = Math.min(100, now - lastTime);
+  const rawDt = Math.min(100, now - lastTime);
   lastTime = now;
+  const dt = state.tutorial.fastForward ? rawDt * TUTORIAL_FAST_FORWARD_MULT : rawDt;
 
   tick(state, dt);
-  draw(ctx, state, hoverCell);
+  advanceTutorial(state);
+  updateTutorialUI(state, onChange);
+
+  const tutorialHint = getTutorialCanvasHint(state);
+  draw(ctx, state, hoverCell, tutorialHint);
   render(state);
 
-  sinceSave += dt;
+  sinceSave += rawDt;
   if (sinceSave >= AUTOSAVE_INTERVAL_MS) {
-    saveState(state);
+    saveState(state, activeSlot);
     sinceSave = 0;
   }
 
   requestAnimationFrame(loop);
 }
 
-window.addEventListener('beforeunload', () => saveState(state));
+window.addEventListener('beforeunload', () => saveState(state, activeSlot));
 
 requestAnimationFrame(loop);

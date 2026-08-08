@@ -1,10 +1,11 @@
-import { CANVAS_W, CANVAS_H, DEPOT, WAREHOUSE, GRID, MACHINE_TYPES, padCenter } from './config.js';
+import { CANVAS_W, CANVAS_H, DEPOT, WAREHOUSE, GRID, PRODUCTS } from './config.js';
+import { haulerTier } from './state.js';
 
 const FLOOR = '#2c2f36';
 const PAD_EMPTY = '#3a3f49';
 const PAD_BORDER = '#565c68';
 
-export function draw(ctx, state, hoverCell) {
+export function draw(ctx, state, hoverCell, tutorialHint) {
   ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
 
   // floor
@@ -18,8 +19,9 @@ export function draw(ctx, state, hoverCell) {
 
   for (const m of state.machines) drawMachine(ctx, m);
   for (const w of state.utilityWorkers) drawUtilityWorker(ctx, w);
-  for (const h of state.haulers) drawHauler(ctx, h);
+  for (const h of state.haulers) drawHauler(ctx, h, haulerTier(state));
 
+  drawTutorialHighlight(ctx, state, tutorialHint);
   drawToasts(ctx, state);
 }
 
@@ -119,15 +121,24 @@ function drawMachine(ctx, m) {
   roundRect(ctx, x, y, w, h, 12);
   ctx.stroke();
 
-  ctx.font = '28px sans-serif';
+  ctx.font = '26px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(m.def.icon, m.x, m.y - 5);
 
-  // staffed indicator
+  // staffed indicator (top-left)
   ctx.beginPath();
   ctx.arc(x + 12, y + 12, 6, 0, Math.PI * 2);
   ctx.fillStyle = m.staffed ? '#4caf50' : '#e53935';
   ctx.fill();
+
+  // product blueprint badge (top-right)
+  ctx.beginPath();
+  ctx.arc(x + w - 12, y + 12, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.fill();
+  ctx.font = '13px sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(m.product ? m.product.icon : '?', x + w - 12, y + 16);
 
   if (m.staffed) drawOperator(ctx, x + 12, y + h - 10);
 
@@ -135,7 +146,8 @@ function drawMachine(ctx, m) {
   const barW = w - 10;
   drawBar(ctx, x + 5, y + h - 18, barW, 6, m.hopperRatio, '#7fd66b', '#1b1b1b');
   // progress bar
-  drawBar(ctx, x + 5, y + h - 10, barW, 5, m.progress / m.def.cycleTime, '#ffd54f', '#1b1b1b');
+  const progressRatio = m.product ? m.progress / m.product.cycleTime : 0;
+  drawBar(ctx, x + 5, y + h - 10, barW, 5, progressRatio, '#ffd54f', '#1b1b1b');
 
   if (m.readyPallets > 0) {
     ctx.fillStyle = '#a97c50';
@@ -186,22 +198,81 @@ function drawUtilityWorker(ctx, w) {
   }
 }
 
-function drawHauler(ctx, h) {
+// tier 0: on foot. tier 1: pushing a hand cart. tier 2: riding a towmotor.
+function drawHauler(ctx, h, tier) {
   const bob = h.state === 'idle' && h.cargoCount === 0 ? 0 : Math.sin(h.walkT / 80) * 2;
-  ctx.fillStyle = '#f4c430';
-  roundRect(ctx, h.x - 10, h.y - 8 + bob, 20, 16, 4);
-  ctx.fill();
-  ctx.strokeStyle = '#8a6d10';
-  ctx.lineWidth = 2;
-  roundRect(ctx, h.x - 10, h.y - 8 + bob, 20, 16, 4);
-  ctx.stroke();
+  const y = h.y + bob;
+
+  if (tier === 2) {
+    ctx.fillStyle = '#f4c430';
+    roundRect(ctx, h.x - 16, y - 10, 30, 18, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#8a6d10';
+    ctx.lineWidth = 2;
+    roundRect(ctx, h.x - 16, y - 10, 30, 18, 4);
+    ctx.stroke();
+    // forks
+    ctx.fillStyle = '#555';
+    ctx.fillRect(h.x + 14, y - 2, 8, 3);
+    ctx.fillRect(h.x + 14, y + 4, 8, 3);
+    // wheels
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(h.x - 10, y + 10, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(h.x + 8, y + 10, 4, 0, Math.PI * 2); ctx.fill();
+  } else if (tier === 1) {
+    ctx.beginPath();
+    ctx.fillStyle = '#e0b23c';
+    ctx.arc(h.x - 6, y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#8a6d10';
+    roundRect(ctx, h.x + 2, y - 7, 16, 14, 3);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = '#f4c430';
+    roundRect(ctx, h.x - 10, y - 8, 20, 16, 4);
+    ctx.fill();
+    ctx.strokeStyle = '#8a6d10';
+    ctx.lineWidth = 2;
+    roundRect(ctx, h.x - 10, y - 8, 20, 16, 4);
+    ctx.stroke();
+  }
 
   if (h.cargoCount > 0) {
     ctx.fillStyle = '#a97c50';
     for (let i = 0; i < h.cargoCount; i++) {
-      ctx.fillRect(h.x - 8 + i * 10, h.y - 20 + bob, 8, 8);
+      ctx.fillRect(h.x - 8 + i * 10, y - 24, 8, 8);
     }
   }
+}
+
+function drawTutorialHighlight(ctx, state, hint) {
+  if (!hint) return;
+  const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 220);
+  ctx.save();
+  ctx.strokeStyle = `rgba(244, 196, 48, ${0.5 + pulse * 0.5})`;
+  ctx.lineWidth = 4;
+
+  if (hint.type === 'pads') {
+    for (let row = 0; row < GRID.rows; row++) {
+      for (let col = 0; col < GRID.cols; col++) {
+        const occupied = state.machines.some((m) => m.row === row && m.col === col);
+        if (occupied) continue;
+        const px = GRID.originX + col * (GRID.padW + GRID.gap);
+        const py = GRID.originY + row * (GRID.padH + GRID.gap);
+        roundRect(ctx, px - 3, py - 3, GRID.padW + 6, GRID.padH + 6, 12);
+        ctx.stroke();
+      }
+    }
+  } else if (hint.type === 'machine') {
+    const m = state.machines.find((mm) => mm.id === hint.id);
+    if (m) {
+      const w = GRID.padW - 20;
+      const hgt = GRID.padH - 20;
+      roundRect(ctx, m.x - w / 2 - 4, m.y - hgt / 2 - 4, w + 8, hgt + 8, 14);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
 }
 
 function drawToasts(ctx, state) {

@@ -24,56 +24,81 @@ Then open `http://localhost:8000`.
 
 ## How the game works
 
-- **Buy a blueprint** in the Shop (`B`) — a blueprint is a one-time purchase
-  that lets you place that kind of machine. There's no separate mold cost;
-  the blueprint price covers everything. Three blueprints exist, based on
-  real plastic-manufacturing processes:
-  - **Extruder** (cheapest) — continuously pushes melted plastic through a
-    die. Makes **straws**. This is your first buy.
+A new save drops you into a short guided tutorial that walks through all of
+this hands-on, one real step at a time — it advances as you actually do each
+thing, not on a "next" button, and can be skipped anytime from its banner.
+
+- **Machines vs. blueprints**: a machine (Extruder, Injection Molder, Blow
+  Molder, Rotational Molder) is just an empty shell until you load a
+  **blueprint** onto it — the actual recipe it runs. Buy the machine in
+  **Shop → Machines**, buy the matching blueprint in **Shop → Blueprints**,
+  then click the placed machine to load the blueprint onto it. A machine
+  with no blueprint has nothing to build.
+- **Machine licenses**: the Extruder is pre-licensed so you can start right
+  away. Every other machine type needs a one-time license purchased first
+  (shown right in the Machines tab); license price climbs with each tier.
+  Buying additional units of a machine you're already licensed for also
+  costs more each time.
+- **Blueprints** (based on real plastic-manufacturing processes), roughly
+  cheapest to most expensive:
+  - **Extruder** — continuously pushes melted plastic through a die. Makes
+    **Straws**. This is your first buy — no license needed.
   - **Injection Molder** — melts plastic and injects it into a mold. Makes
-    **toy parts**.
-  - **Blow Molder** — inflates a hot tube inside a mold. Makes **bottles**.
-  - Buying another of the same blueprint costs more than the last one did —
-    there's no cap, but the price climbs each time.
+    **Toy Parts**.
+  - **Blow Molder** — inflates a hot tube inside a mold. Makes **Bottles**.
+  - **Rotational Molder** — tumbles powder in a heated rotating mold, built
+    for big hollow items. Makes **Kayaks**. The most expensive machine and
+    blueprint in the game.
 - A bought machine lands in your **hotbar** (bottom of screen, slots `1`-`9`).
   Press the number key (or click the slot) to select it, then click an empty
   pad on the factory floor to place it. Buy more machines than you have
   hotbar space for and the extras wait in **Inventory** (`I`).
-- A placed machine does nothing until you **hire an operator** for it — click
-  the machine and pay the one-time hire cost (also climbs with each operator
-  you've hired). Operators just stand there; they don't walk around. No
-  operator, no production, no matter how much plastic is in the hopper.
-- Buy **plastic** at the Supply Depot (left side, via the Shop) — one
-  generic material, no need to track types. Your **utility worker**
-  automatically walks it from the depot to whichever staffed machine is
-  running low.
-- Finished pallets pile up at the machine until your **pallet jack worker**
-  walks over, picks them up, and hauls them to the **Warehouse** (right
-  side), which sells them for cash automatically.
+- **Shop → Workers** is where you hire everyone: a Utility Worker, a
+  Warehouse Worker, and an Operator for each machine you place. All of it is
+  one-time pay — no wages — but hiring another of the same kind always costs
+  more than the last one did.
+  - **Operators** are stationary — hire one per machine and it just stands
+    there. No operator, no production, no matter how much plastic is in the
+    hopper.
+  - The **Utility Worker** walks plastic from the depot to whichever staffed
+    machine is running low.
+  - The **Warehouse Worker** walks finished pallets from machines to the
+    warehouse to sell. Invest enough in their speed (or buy the Towmotor
+    upgrade outright) and their sprite upgrades in place: on foot → pushing
+    a hand cart → riding a towmotor with forks.
+- Buy **plastic** in **Shop → Material** — one generic feedstock, no need to
+  track types per machine.
 - Click a running machine directly to give it a small one-off production
   boost — that's the "clicker" half of the game on top of the idle
   automation.
-- Spend cash under **Upgrades & Staff** to hire a second utility worker or
-  pallet jack operator, speed everyone up, carry bigger plastic loads, get a
-  bulk plastic discount, or upgrade to a **towmotor** that carries two
-  pallets at once. No wages/upkeep anywhere — every hire and every blueprint
-  is paid once and it's yours for good.
-- Progress autosaves to `localStorage` in your browser.
+- **Shop → Upgrades** covers machine production speed, worker walking speed,
+  bigger plastic loads per trip, a bulk plastic discount, and the towmotor
+  upgrade.
+- **Save Slots**: three independent slots, switchable from the "Save Slots"
+  button. A slot only remembers what you *own* and what you've *earned* —
+  which machines are placed and staffed, which blueprints and licenses you
+  bought, how many workers you hired, and pallets already finished and
+  waiting for pickup. It does **not** remember exactly where a worker was
+  standing or how far into its cycle a machine was — reloading a slot looks
+  like everyone just clocked in for a fresh shift, hoppers stocked and ready.
+  The tutorial only ever shows up on a brand new slot.
 
-All the numbers (machine costs, cycle times, hopper sizes, upgrade costs,
-worker speeds) live in one place: [`js/config.js`](js/config.js). Tweak them
-there to rebalance the game without touching any logic.
+All the numbers (machine costs, blueprint costs, license costs, cycle times,
+hopper sizes, upgrade costs, worker speeds) live in one place:
+[`js/config.js`](js/config.js). Tweak them there to rebalance the game
+without touching any logic.
 
 ## Project structure
 
 ```
-index.html          Page shell + panels (shop, inventory, help)
+index.html          Page shell + panels (shop, inventory, slots, tutorial banner, help)
 css/style.css        All styling
-js/config.js         Every tunable number and machine/upgrade definition
+js/config.js         Every tunable number: machines, blueprints, upgrades, save slots
 js/entities.js       Machine, UtilityWorker, Hauler classes + their behavior
-js/state.js          Central game state, save/load, upgrade purchase logic
+js/state.js          Central game state, save-slot persistence, purchase logic
+js/tutorial.js       The step list for the guided first-time tutorial
 js/render.js         Canvas drawing (factory floor, depot, warehouse, sprites)
-js/ui.js             DOM wiring for the shop/inventory/hotbar panels
+js/ui.js             DOM wiring for the shop/inventory/slots/tutorial UI
 js/main.js           Game loop, input handling, bootstraps everything
 ```
 
@@ -81,16 +106,21 @@ No frameworks, no build tooling — open a JS file and it's the whole story.
 
 ## Roadmap ideas (not built yet)
 
-- **Assembly lines**: machines that produce *components* (e.g. a car body,
-  a set of wheels) feeding into a conveyor belt that connects to an
-  **assembly machine**, which combines components into a higher-value
-  finished product (e.g. a toy car), each stage staffed by its own operator.
-- A bigger, unlockable factory-floor grid (start small, buy more placement
-  pads as you grow).
-- More real-world processes as machine types: thermoforming, rotational
-  molding.
-- Real sprite art instead of the current vector-drawn placeholder shapes —
-  `render.js` is the only file that would need to change.
+- **Assembly kits**: some machines (starting with the Rotational Molder)
+  would offer several blueprints instead of one — e.g. Frame, Swings,
+  See-Saw, and Sliding Board, each individually sellable. A conveyor belt
+  feeding into a new **assembly machine** (its own operator) would combine
+  a full matching set into a single higher-value kit — a Swing Set, or a
+  Playhouse built from doors/roof/windows/frame. An assembled kit always
+  sells for more than the sum of its parts sold separately. The
+  machine/blueprint split already in place is exactly the groundwork this
+  needs — a Rotomolder just needs more than one ownable blueprint.
+- **Warehouse expansion**: once the starting 4×3 factory-floor grid fills
+  up, buy an upgrade to a bigger warehouse with more machine pads — likely
+  paired with raising the worker-hire caps to match.
+- Real sprite art (PNGs) instead of the current vector-drawn placeholder
+  shapes — `render.js` is the only file that would need to change; machine
+  and product icons are already centralized in `config.js`.
 
 ## Why GitHub Pages (and alternatives)
 
