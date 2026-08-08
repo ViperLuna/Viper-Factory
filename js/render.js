@@ -1,4 +1,4 @@
-import { CANVAS_W, CANVAS_H, DEPOT, WAREHOUSE, GRID, PRODUCTS } from './config.js';
+import { CANVAS_W, CANVAS_H, DEPOT, WAREHOUSE, GRID, PRODUCTS, PALLET_CAPACITY } from './config.js';
 import { haulerTier } from './state.js';
 
 const FLOOR = '#2c2f36';
@@ -150,13 +150,14 @@ function drawMachine(ctx, m) {
   drawBar(ctx, x + 5, y + h - 10, barW, 5, progressRatio, '#ffd54f', '#1b1b1b');
 
   if (m.readyPallets > 0) {
+    const full = m.readyPallets >= PALLET_CAPACITY;
     ctx.fillStyle = '#a97c50';
-    for (let i = 0; i < Math.min(3, m.readyPallets); i++) {
+    for (let i = 0; i < m.readyPallets; i++) {
       ctx.fillRect(x + w - 18, y + h - 30 - i * 8, 14, 6);
     }
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = full ? '#ff6b6b' : '#fff';
     ctx.font = 'bold 11px sans-serif';
-    ctx.fillText(`x${m.readyPallets}`, x + w - 11, y + h - 40);
+    ctx.fillText(full ? 'FULL' : `x${m.readyPallets}`, x + w - 11, y + h - 40);
   }
 }
 

@@ -1,5 +1,5 @@
 import {
-  MACHINE_TYPES, PRODUCTS, padCenter, DEPOT, WAREHOUSE,
+  MACHINE_TYPES, PRODUCTS, PALLET_CAPACITY, padCenter, DEPOT, WAREHOUSE,
 } from './config.js';
 
 let nextId = 1;
@@ -40,7 +40,9 @@ export class Machine {
   }
 
   canRun() {
-    return this.staffed && this.product !== null && this.hopperAmount >= this.product.consumePerCycle;
+    return this.staffed && this.product !== null
+      && this.hopperAmount >= this.product.consumePerCycle
+      && this.readyPallets < PALLET_CAPACITY;
   }
 
   update(dt, speedMult) {

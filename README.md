@@ -27,6 +27,10 @@ Then open `http://localhost:8000`.
 A new save drops you into a short guided tutorial that walks through all of
 this hands-on, one real step at a time — it advances as you actually do each
 thing, not on a "next" button, and can be skipped anytime from its banner.
+While a step is active, everything except that step's exact target is
+disabled (other tabs, other buy buttons, the hotbar) — including locking out
+pricier options like the big plastic bundles, so there's no way to misspend
+and get stuck without enough cash to finish setup.
 
 - **Machines vs. blueprints**: a machine (Extruder, Injection Molder, Blow
   Molder, Rotational Molder) is just an empty shell until you load a
@@ -59,15 +63,25 @@ thing, not on a "next" button, and can be skipped anytime from its banner.
   more than the last one did.
   - **Operators** are stationary — hire one per machine and it just stands
     there. No operator, no production, no matter how much plastic is in the
-    hopper.
+    hopper. Unlike other workers, operators have no upgrades of their own —
+    all of that happens on the machine itself (Machine Tune-Up, blueprint
+    choice). Pick a machine up (Shop → Machines, "Pick Up") and its operator
+    isn't lost — they go into limbo, still yours, and staff the next machine
+    you place for free before any new hire ever costs you again.
   - The **Utility Worker** walks plastic from the depot to whichever staffed
     machine is running low.
   - The **Warehouse Worker** walks finished pallets from machines to the
     warehouse to sell. Invest enough in their speed (or buy the Towmotor
     upgrade outright) and their sprite upgrades in place: on foot → pushing
     a hand cart → riding a towmotor with forks.
+  - The starting warehouse only supports up to **2 Utility Workers and 2
+    Warehouse Workers** — a future warehouse expansion (see Roadmap) would
+    raise that ceiling.
 - Buy **plastic** in **Shop → Material** — one generic feedstock, no need to
   track types per machine.
+- Each machine's plot only holds **3 finished pallets**. Once full, it stops
+  producing — even fully staffed and stocked — until a Warehouse Worker
+  hauls at least one away.
 - Click a running machine directly to give it a small one-off production
   boost — that's the "clicker" half of the game on top of the idle
   automation.

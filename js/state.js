@@ -24,6 +24,7 @@ export function createInitialState() {
     ),
     blueprintsOwned: Object.fromEntries(Object.keys(PRODUCTS).map((k) => [k, false])),
     operatorsHired: 0,
+    operatorsInLimbo: 0,
     toasts: [],
     tutorial: { stepIndex: 0, active: true, fastForward: false },
     uiFlags: { shopOpen: false },
@@ -176,8 +177,32 @@ export function moveOverflowToHotbar(state, overflowIndex) {
   return true;
 }
 
+// Picking a machine up doesn't fire its operator - they go into limbo
+// (still yours, unpaid-for-again) until another machine needs staffing.
+// The blueprint isn't lost either: blueprints are owned account-wide, so
+// re-placing this machine (or any of the same type) can load it for free.
+export function pickUpMachine(state, machineId) {
+  const idx = state.machines.findIndex((m) => m.id === machineId);
+  if (idx === -1) return false;
+  const [removed] = state.machines.splice(idx, 1);
+  if (removed.staffed) state.operatorsInLimbo += 1;
+  const item = { instanceId: makeId(), key: removed.key };
+  const emptySlot = state.hotbar.findIndex((s) => s === null);
+  if (emptySlot !== -1) state.hotbar[emptySlot] = item;
+  else state.overflow.push(item);
+  return true;
+}
+
+// A machine operator hired before is still owned after their machine gets
+// picked up - staffing a new machine draws from that limbo pool for free
+// before ever charging for a brand new hire.
 export function hireOperator(state, machine) {
   if (machine.staffed) return false;
+  if (state.operatorsInLimbo > 0) {
+    state.operatorsInLimbo -= 1;
+    machine.staffed = true;
+    return true;
+  }
   const cost = nextOperatorCost(state, machine.key);
   if (state.cash < cost) return false;
   state.cash -= cost;
@@ -283,6 +308,7 @@ export function serialize(state) {
     licensesOwned: state.licensesOwned,
     blueprintsOwned: state.blueprintsOwned,
     operatorsHired: state.operatorsHired,
+    operatorsInLimbo: state.operatorsInLimbo,
     tutorial: { stepIndex: state.tutorial.stepIndex, active: state.tutorial.active },
     // Only what's earned and assigned survives - not the in-progress cycle
     // timer or the current plastic level, which reset fresh on load.
@@ -325,6 +351,7 @@ export function loadState(slot) {
     state.licensesOwned = { ...state.licensesOwned, ...(data.licensesOwned ?? {}) };
     state.blueprintsOwned = { ...state.blueprintsOwned, ...(data.blueprintsOwned ?? {}) };
     state.operatorsHired = data.operatorsHired ?? 0;
+    state.operatorsInLimbo = data.operatorsInLimbo ?? 0;
     if (data.tutorial) {
       state.tutorial.stepIndex = data.tutorial.stepIndex ?? 0;
       state.tutorial.active = data.tutorial.active ?? false;

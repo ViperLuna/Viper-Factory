@@ -5,6 +5,11 @@ export const CANVAS_H = 600;
 
 export const START_CASH = 180;
 
+// A machine's plot only holds this many finished pallets. Once full, it
+// stops producing (even with staff and material) until a warehouse worker
+// hauls at least one pallet away.
+export const PALLET_CAPACITY = 3;
+
 export const DEPOT = { x: 20, y: 90, w: 140, h: 470, doorX: 160, doorY: 300 };
 export const WAREHOUSE = { x: 840, y: 90, w: 140, h: 470, doorX: 840, doorY: 300 };
 
@@ -94,14 +99,16 @@ export const UPGRADES = [
     id: 'hireUtility',
     name: 'Hire Utility Worker',
     desc: 'Adds another worker who keeps machine hoppers stocked with plastic.',
-    max: 4,
+    // Capped by the starting warehouse's size - a future warehouse
+    // expansion (see README roadmap) would raise this.
+    max: 2,
     costFor: (level) => Math.round(30 * Math.pow(1.8, level)),
   },
   {
     id: 'hireHauler',
     name: 'Hire Warehouse Worker',
     desc: 'Adds another worker who hauls finished pallets to the warehouse.',
-    max: 4,
+    max: 2,
     costFor: (level) => Math.round(30 * Math.pow(1.8, level)),
   },
   {

@@ -2,15 +2,20 @@ import { MACHINE_TYPES, PRODUCTS, PLASTIC_BUNDLES, UPGRADES } from './config.js'
 import {
   buyMachine, buyPlastic, buyUpgrade, buyLicense, buyBlueprint, hireOperator,
   moveOverflowToHotbar, upgradeLevel, upgradeCost, upgradeMaxed, plasticPrice,
-  addToast, nextMachineCost, nextOperatorCost,
+  addToast, nextMachineCost, nextOperatorCost, pickUpMachine,
   listSlotSummaries, getActiveSlot, setActiveSlot, clearSlot,
 } from './state.js';
-import { currentStep, resolveHighlight, dismissTutorial } from './tutorial.js';
+import { currentStep, resolveHighlight, dismissTutorial, getStepLockInfo } from './tutorial.js';
 
 const els = {};
 const WORKER_HIRE_IDS = ['hireUtility', 'hireHauler'];
+const TAB_CONTENT_IDS = {
+  machines: 'shopMachines', workers: 'shopWorkers', plastic: 'shopPlastic',
+  blueprints: 'shopBlueprints', upgrades: 'shopUpgrades',
+};
 let highlightedEls = [];
 let lastTutorialActive = null;
+let lockedEls = [];
 
 export function initUI(state, onChange) {
   els.cash = document.getElementById('cashVal');
@@ -165,7 +170,7 @@ function rebuildShopMachines(state, onChange) {
             <div class="name">${def.icon} ${def.name} — license required</div>
             <div class="desc">Hopper ${def.hopperCapacity} plastic. Buy the license once to unlock this machine type for good.</div>
           </div>
-          <button>Buy License $${def.licenseCost}</button>
+          <button data-action="buyLicense">Buy License $${def.licenseCost}</button>
         `;
         row.querySelector('button').addEventListener('click', () => {
           if (buyLicense(state, def.key)) {
@@ -186,7 +191,7 @@ function rebuildShopMachines(state, onChange) {
           <div class="name">${def.icon} ${def.name}${count > 0 ? ` (owned: ${count})` : ''}</div>
           <div class="desc">Hopper ${def.hopperCapacity} plastic · next operator costs $${nextOperatorCost(state, def.key)}</div>
         </div>
-        <button>Buy $${cost}</button>
+        <button data-action="buyMachine">Buy $${cost}</button>
       `;
       row.querySelector('button').addEventListener('click', () => {
         if (buyMachine(state, def.key)) {
@@ -200,6 +205,33 @@ function rebuildShopMachines(state, onChange) {
     };
     refresh();
   });
+
+  if (state.machines.length > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'desc';
+    divider.style.margin = '10px 0 4px';
+    divider.textContent = 'Placed on the floor (pick one up to free its pad - its operator stays yours, in limbo, ready to staff the next machine for free):';
+    els.shopMachines.appendChild(divider);
+
+    state.machines.forEach((m) => {
+      const row = document.createElement('div');
+      row.className = 'shop-item';
+      row.innerHTML = `
+        <div class="info">
+          <div class="name">${m.def.icon} ${m.def.name} at row ${m.row + 1}, col ${m.col + 1}</div>
+          <div class="desc">${m.staffed ? 'Staffed' : 'Unstaffed'}${m.product ? ` · running ${m.product.name}` : ' · no blueprint loaded'}</div>
+        </div>
+        <button data-action="pickUpMachine">Pick Up</button>
+      `;
+      row.querySelector('button').addEventListener('click', () => {
+        pickUpMachine(state, m.id);
+        addToast(state, 'Machine picked up');
+        onChange();
+        rebuildShopMachines(state, onChange);
+      });
+      els.shopMachines.appendChild(row);
+    });
+  }
 }
 
 function buildShopWorkers(state, onChange) {
@@ -220,7 +252,7 @@ function buildShopWorkers(state, onChange) {
           <div class="name">${def.name} (hired: ${level}/${def.max})</div>
           <div class="desc">${def.desc}</div>
         </div>
-        <button ${maxed ? 'disabled' : ''}>${maxed ? 'Maxed' : `Hire $${cost}`}</button>
+        <button data-action="${id}" ${maxed ? 'disabled' : ''}>${maxed ? 'Maxed' : `Hire $${cost}`}</button>
       `;
       row.querySelector('button').addEventListener('click', () => {
         if (buyUpgrade(state, id)) {
@@ -237,7 +269,9 @@ function buildShopWorkers(state, onChange) {
     const divider = document.createElement('div');
     divider.className = 'desc';
     divider.style.margin = '10px 0 4px';
-    divider.textContent = 'Machine operators (one per machine, hired on the spot):';
+    divider.textContent = state.operatorsInLimbo > 0
+      ? `Machine operators — ${state.operatorsInLimbo} in limbo, free to reassign before any new hire:`
+      : 'Machine operators (one per machine, hired on the spot - no upgrades, that all happens on the machine itself):';
     container.appendChild(divider);
 
     const unstaffed = state.machines.filter((m) => !m.staffed);
@@ -249,19 +283,20 @@ function buildShopWorkers(state, onChange) {
       return;
     }
     unstaffed.forEach((m) => {
+      const free = state.operatorsInLimbo > 0;
       const cost = nextOperatorCost(state, m.key);
       const row = document.createElement('div');
       row.className = 'shop-item';
       row.innerHTML = `
         <div class="info">
           <div class="name">${m.def.icon} ${m.def.name} at row ${m.row + 1}, col ${m.col + 1}</div>
-          <div class="desc">Unstaffed — won't produce until hired.</div>
+          <div class="desc">Unstaffed — won't produce until staffed.</div>
         </div>
-        <button>Hire $${cost}</button>
+        <button data-action="hireOperator">${free ? 'Assign (free)' : `Hire $${cost}`}</button>
       `;
       row.querySelector('button').addEventListener('click', () => {
         if (hireOperator(state, m)) {
-          addToast(state, 'Operator hired');
+          addToast(state, free ? 'Operator reassigned from limbo' : 'Operator hired');
           onChange();
           render_();
         } else {
@@ -295,7 +330,7 @@ function rebuildShopBlueprints(state, onChange) {
           <div class="desc">Uses ${def.consumePerCycle} plastic/cycle · ${(def.cycleTime / 1000).toFixed(0)}s cycle
           · pallet worth $${def.palletValue}</div>
         </div>
-        <button ${owned ? 'disabled' : ''}>${owned ? 'Owned' : `Buy $${def.cost}`}</button>
+        <button data-action="buyBlueprint" ${owned ? 'disabled' : ''}>${owned ? 'Owned' : `Buy $${def.cost}`}</button>
       `;
       if (!owned) {
         row.querySelector('button').addEventListener('click', () => {
@@ -321,12 +356,13 @@ function buildShopPlastic(state, onChange) {
   info.textContent = 'Generic plastic feedstock. Any machine can use it — your utility worker fetches it from here.';
   els.shopPlastic.appendChild(info);
 
-  PLASTIC_BUNDLES.forEach((amount) => {
+  PLASTIC_BUNDLES.forEach((amount, i) => {
     const row = document.createElement('div');
     row.className = 'shop-item';
     const priceEl = document.createElement('span');
     row.innerHTML = `<div class="info"><div class="name">${amount} plastic</div></div>`;
     const btn = document.createElement('button');
+    btn.dataset.action = i === 0 ? 'buyPlasticStarter' : 'buyPlasticBulk';
     row.appendChild(btn);
     row.querySelector('.info').appendChild(priceEl);
     const refresh = () => {
@@ -364,7 +400,7 @@ function buildShopUpgrades(state, onChange) {
           <div class="name">${def.name} ${def.max > 1 ? `(Lv ${level}/${def.max})` : ''}</div>
           <div class="desc">${def.desc}</div>
         </div>
-        <button ${maxed ? 'disabled' : ''}>${maxed ? 'Maxed' : `Buy $${cost}`}</button>
+        <button data-action="${def.id}" ${maxed ? 'disabled' : ''}>${maxed ? 'Maxed' : `Buy $${cost}`}</button>
       `;
       row.querySelector('button').addEventListener('click', () => {
         if (buyUpgrade(state, def.id)) {
@@ -465,6 +501,64 @@ function applyDomHighlight(selector) {
   });
 }
 
+function lockEl(el) {
+  el.classList.add('tutorial-dim');
+  if (el.tagName === 'BUTTON') el.disabled = true;
+}
+
+function unlockEl(el) {
+  el.classList.remove('tutorial-dim');
+  if (el.tagName === 'BUTTON') el.disabled = false;
+}
+
+// Everything clickable except the current step's exact target gets locked,
+// so a new player can't wander off, buy the wrong thing, and strand
+// themselves without enough cash to finish the tutorial.
+function computeLockedSet(state, step) {
+  const info = getStepLockInfo(step);
+  if (info.kind === 'none') return [];
+  const locked = [];
+  const shopNeeded = info.kind === 'tab-action';
+
+  // The shop's own open/close toggle and its X are never locked - whatever
+  // step is active, the player must always be able to get the shop out of
+  // the way to reach the canvas underneath, or back open again.
+  ['inventoryBtn', 'slotsBtn', 'helpBtn'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const allowed = info.kind === 'top-level' && info.selector === `#${id}`;
+    if (!allowed) locked.push(el);
+  });
+
+  document.querySelectorAll('#inventoryPanel .close-btn, #slotsPanel .close-btn, #helpPanel .close-btn')
+    .forEach((el) => locked.push(el));
+
+  document.querySelectorAll('#shopPanel .tab').forEach((tabEl) => {
+    const allowed = shopNeeded && tabEl.dataset.tab === info.tab;
+    if (!allowed) locked.push(tabEl);
+  });
+
+  Object.entries(TAB_CONTENT_IDS).forEach(([tabName, containerId]) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const isAllowedContainer = shopNeeded && tabName === info.tab;
+    if (!isAllowedContainer) {
+      container.querySelectorAll('button').forEach((b) => locked.push(b));
+      return;
+    }
+    if (info.action) {
+      container.querySelectorAll('button').forEach((b) => {
+        if (b.dataset.action !== info.action) locked.push(b);
+      });
+    }
+    // action is null/undefined -> every button in this container stays usable
+  });
+
+  document.querySelectorAll('.hotbar-slot').forEach((el) => locked.push(el));
+
+  return locked;
+}
+
 export function updateTutorialUI(state, onChange) {
   if (state.tutorial.active !== lastTutorialActive) {
     lastTutorialActive = state.tutorial.active;
@@ -476,6 +570,8 @@ export function updateTutorialUI(state, onChange) {
   if (!step) {
     els.tutorialBanner.classList.add('hidden');
     clearHighlights();
+    lockedEls.forEach(unlockEl);
+    lockedEls = [];
     return;
   }
   els.tutorialBanner.classList.remove('hidden');
@@ -483,6 +579,11 @@ export function updateTutorialUI(state, onChange) {
   els.tutorialNext.classList.toggle('hidden', !step.manualDismiss);
   const { dom } = resolveHighlight(state, step);
   applyDomHighlight(dom);
+
+  const newLocked = computeLockedSet(state, step);
+  lockedEls.forEach((el) => { if (!newLocked.includes(el)) unlockEl(el); });
+  newLocked.forEach(lockEl);
+  lockedEls = newLocked;
 }
 
 export function getTutorialCanvasHint(state) {

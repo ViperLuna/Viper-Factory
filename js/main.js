@@ -8,7 +8,7 @@ import {
   initUI, render, tryHireOperator, tryAssignBlueprintUI, updateTutorialUI, getTutorialCanvasHint,
   refreshWorkersTab,
 } from './ui.js';
-import { advanceTutorial } from './tutorial.js';
+import { advanceTutorial, isCanvasActionAllowed, isHotbarAllowed } from './tutorial.js';
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -42,6 +42,7 @@ canvas.addEventListener('mousemove', (evt) => {
 });
 
 canvas.addEventListener('click', (evt) => {
+  if (!isCanvasActionAllowed(state)) return;
   const { x, y } = canvasPoint(evt);
 
   const machine = machineAtPoint(state, x, y);
@@ -67,6 +68,7 @@ canvas.addEventListener('click', (evt) => {
 
 window.addEventListener('keydown', (evt) => {
   if (evt.key >= '1' && evt.key <= '9') {
+    if (!isHotbarAllowed(state)) return;
     state.selectedSlot = Number(evt.key) - 1;
     render(state);
     return;

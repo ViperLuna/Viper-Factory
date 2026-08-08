@@ -215,3 +215,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   position: relative;
   z-index: 5;
 }
+
+.tutorial-dim {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: not-allowed;
+}
