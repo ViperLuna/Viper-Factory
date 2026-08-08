@@ -107,16 +107,16 @@ export class UtilityWorker extends Walker {
     if (this.state === 'toDepot') {
       if (arrived()) {
         const m = this.targetMachine;
-        if (!m || state.pellets <= 0) {
+        if (!m || state.plastic <= 0) {
           if (m) m.reservedByUtility = null;
           this.targetMachine = null;
           this.state = 'idle';
           return;
         }
         const need = m.hopperCapacity - m.hopperAmount;
-        const load = Math.min(refillAmount, need, state.pellets);
+        const load = Math.min(refillAmount, need, state.plastic);
         this.cargo = load;
-        state.pellets -= load;
+        state.plastic -= load;
         this.destX = m.x;
         this.destY = m.y + 45;
         this.state = 'toMachine';

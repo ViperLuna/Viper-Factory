@@ -1,23 +1,22 @@
+import { MACHINE_TYPES, PLASTIC_BUNDLES, UPGRADES } from './config.js';
 import {
-  MACHINE_TYPES, PELLET_BUNDLES, UPGRADES, operatorHireCost,
-} from './config.js';
-import {
-  buyMachine, buyPellets, buyUpgrade, hireOperator, moveOverflowToHotbar,
-  upgradeLevel, upgradeCost, upgradeMaxed, pelletPrice, addToast,
+  buyMachine, buyPlastic, buyUpgrade, hireOperator, moveOverflowToHotbar,
+  upgradeLevel, upgradeCost, upgradeMaxed, plasticPrice, addToast,
+  nextMachineCost, nextOperatorCost,
 } from './state.js';
 
 const els = {};
 
 export function initUI(state, onChange) {
   els.cash = document.getElementById('cashVal');
-  els.pellets = document.getElementById('pelletVal');
+  els.plastic = document.getElementById('plasticVal');
   els.sold = document.getElementById('soldVal');
   els.hotbar = document.getElementById('hotbar');
   els.shopPanel = document.getElementById('shopPanel');
   els.inventoryPanel = document.getElementById('inventoryPanel');
   els.helpPanel = document.getElementById('helpPanel');
   els.shopMachines = document.getElementById('shopMachines');
-  els.shopPellets = document.getElementById('shopPellets');
+  els.shopPlastic = document.getElementById('shopPlastic');
   els.shopUpgrades = document.getElementById('shopUpgrades');
   els.inventoryGrid = document.getElementById('inventoryGrid');
 
@@ -33,14 +32,14 @@ export function initUI(state, onChange) {
     tabBtn.addEventListener('click', () => {
       document.querySelectorAll('#shopPanel .tab').forEach((b) => b.classList.remove('active'));
       tabBtn.classList.add('active');
-      ['shopMachines', 'shopPellets', 'shopUpgrades'].forEach((id) => {
+      ['shopMachines', 'shopPlastic', 'shopUpgrades'].forEach((id) => {
         document.getElementById(id).classList.toggle('hidden', `shop${capitalize(tabBtn.dataset.tab)}` !== id);
       });
     });
   });
 
   buildShopMachines(state, onChange);
-  buildShopPellets(state, onChange);
+  buildShopPlastic(state, onChange);
   buildShopUpgrades(state, onChange);
   buildHotbar(state, onChange);
   render(state);
@@ -68,58 +67,66 @@ function buildShopMachines(state, onChange) {
   Object.values(MACHINE_TYPES).forEach((def) => {
     const row = document.createElement('div');
     row.className = 'shop-item';
-    row.innerHTML = `
-      <div class="info">
-        <div class="name">${def.icon} ${def.name} — $${def.cost}</div>
-        <div class="desc">Hopper ${def.hopperCapacity} pellets · uses ${def.consumePerCycle}/cycle
-        · ${(def.cycleTime / 1000).toFixed(0)}s cycle · pallet worth $${def.palletValue}
-        · operator costs $${operatorHireCost(def.key)}</div>
-      </div>
-      <button data-key="${def.key}">Buy</button>
-    `;
-    row.querySelector('button').addEventListener('click', () => {
-      if (buyMachine(state, def.key)) {
-        addToast(state, `Bought ${def.name}`);
-        onChange();
-      } else {
-        flashDisabled(row.querySelector('button'));
-      }
-    });
     els.shopMachines.appendChild(row);
+
+    const refresh = () => {
+      const cost = nextMachineCost(state, def.key);
+      const owned = state.machineCounts[def.key] || 0;
+      row.innerHTML = `
+        <div class="info">
+          <div class="name">${def.icon} ${def.name} blueprint — makes ${def.product}${owned > 0 ? ` (owned: ${owned})` : ''}</div>
+          <div class="desc">Hopper ${def.hopperCapacity} plastic · uses ${def.consumePerCycle}/cycle
+          · ${(def.cycleTime / 1000).toFixed(0)}s cycle · pallet worth $${def.palletValue}
+          · next operator costs $${nextOperatorCost(state, def.key)}</div>
+        </div>
+        <button data-key="${def.key}">Buy $${cost}</button>
+      `;
+      row.querySelector('button').addEventListener('click', () => {
+        if (buyMachine(state, def.key)) {
+          addToast(state, `Bought ${def.name}`);
+          onChange();
+          refresh();
+        } else {
+          flashDisabled(row.querySelector('button'));
+        }
+      });
+    };
+    refresh();
   });
 }
 
-function buildShopPellets(state, onChange) {
-  els.shopPellets.innerHTML = '';
+function buildShopPlastic(state, onChange) {
+  els.shopPlastic.innerHTML = '';
   const info = document.createElement('div');
   info.className = 'desc';
   info.style.marginBottom = '8px';
-  els.shopPellets.appendChild(info);
+  info.textContent = 'Generic plastic feedstock. Any machine can use it — your utility worker fetches it from here.';
+  els.shopPlastic.appendChild(info);
 
-  PELLET_BUNDLES.forEach((amount) => {
+  PLASTIC_BUNDLES.forEach((amount) => {
     const row = document.createElement('div');
     row.className = 'shop-item';
     const priceEl = document.createElement('span');
-    row.innerHTML = `<div class="info"><div class="name">${amount} pellets</div></div>`;
+    row.innerHTML = `<div class="info"><div class="name">${amount} plastic</div></div>`;
     const btn = document.createElement('button');
     row.appendChild(btn);
     row.querySelector('.info').appendChild(priceEl);
     const refresh = () => {
-      const price = pelletPrice(state);
+      const price = plasticPrice(state);
       priceEl.textContent = ` — $${(amount * price).toFixed(2)}`;
       btn.textContent = 'Buy';
     };
     refresh();
     btn.addEventListener('click', () => {
-      if (buyPellets(state, amount)) {
-        addToast(state, `Bought ${amount} pellets`);
+      if (buyPlastic(state, amount)) {
+        addToast(state, `Bought ${amount} plastic`);
         onChange();
         refresh();
       } else {
         flashDisabled(btn);
       }
     });
-    els.shopPellets.appendChild(row);
+    els.shopPlastic.appendChild(row);
   });
 }
 
@@ -201,7 +208,7 @@ export function renderInventory(state, onChange) {
 }
 
 export function tryHireOperator(state, machine, onChange) {
-  const cost = operatorHireCost(machine.key);
+  const cost = nextOperatorCost(state, machine.key);
   if (hireOperator(state, machine)) {
     addToast(state, `Operator hired for $${cost}`);
     onChange();
@@ -213,7 +220,7 @@ export function tryHireOperator(state, machine, onChange) {
 
 export function render(state) {
   els.cash.textContent = `$${state.cash.toFixed(2)}`;
-  els.pellets.textContent = Math.floor(state.pellets);
+  els.plastic.textContent = Math.floor(state.plastic);
   els.sold.textContent = state.palletsSold;
 
   document.querySelectorAll('.hotbar-slot').forEach((slotEl, i) => {

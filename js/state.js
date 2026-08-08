@@ -1,12 +1,13 @@
 import {
-  START_CASH, MACHINE_TYPES, UPGRADES, GRID, SAVE_KEY, operatorHireCost,
+  START_CASH, MACHINE_TYPES, UPGRADES, GRID, SAVE_KEY,
+  machineCostFor, operatorCostFor, PLASTIC_UNIT_COST,
 } from './config.js';
 import { Machine, UtilityWorker, Hauler, makeId } from './entities.js';
 
 export function createInitialState() {
   const state = {
     cash: START_CASH,
-    pellets: 0,
+    plastic: 0,
     palletsSold: 0,
     hotbar: new Array(9).fill(null),
     overflow: [],
@@ -15,6 +16,8 @@ export function createInitialState() {
     utilityWorkers: [new UtilityWorker()],
     haulers: [new Hauler()],
     upgradeLevels: Object.fromEntries(UPGRADES.map((u) => [u.id, 0])),
+    machineCounts: Object.fromEntries(Object.keys(MACHINE_TYPES).map((k) => [k, 0])),
+    operatorsHired: 0,
     toasts: [],
   };
   return state;
@@ -62,15 +65,26 @@ export function refillAmount(state) {
   return 15 * Math.pow(1.25, upgradeLevel(state, 'refillAmount'));
 }
 
-export function pelletPrice(state) {
-  const discount = Math.pow(0.9, upgradeLevel(state, 'pelletDiscount'));
-  return +(0.5 * discount).toFixed(3);
+export function plasticPrice(state) {
+  const discount = Math.pow(0.9, upgradeLevel(state, 'plasticDiscount'));
+  return +(PLASTIC_UNIT_COST * discount).toFixed(3);
+}
+
+export function nextMachineCost(state, key) {
+  return machineCostFor(key, state.machineCounts[key] || 0);
+}
+
+export function nextOperatorCost(state, machineKey) {
+  return operatorCostFor(machineKey, state.operatorsHired);
 }
 
 export function buyMachine(state, key) {
   const def = MACHINE_TYPES[key];
-  if (!def || state.cash < def.cost) return false;
-  state.cash -= def.cost;
+  if (!def) return false;
+  const cost = nextMachineCost(state, key);
+  if (state.cash < cost) return false;
+  state.cash -= cost;
+  state.machineCounts[key] += 1;
   const item = { instanceId: makeId(), key };
   const emptySlot = state.hotbar.findIndex((s) => s === null);
   if (emptySlot !== -1) state.hotbar[emptySlot] = item;
@@ -78,11 +92,11 @@ export function buyMachine(state, key) {
   return true;
 }
 
-export function buyPellets(state, amount) {
-  const cost = amount * pelletPrice(state);
+export function buyPlastic(state, amount) {
+  const cost = amount * plasticPrice(state);
   if (state.cash < cost) return false;
   state.cash -= cost;
-  state.pellets += amount;
+  state.plastic += amount;
   return true;
 }
 
@@ -109,10 +123,11 @@ export function moveOverflowToHotbar(state, overflowIndex) {
 
 export function hireOperator(state, machine) {
   if (machine.staffed) return false;
-  const cost = operatorHireCost(machine.key);
+  const cost = nextOperatorCost(state, machine.key);
   if (state.cash < cost) return false;
   state.cash -= cost;
   machine.staffed = true;
+  state.operatorsHired += 1;
   return true;
 }
 
@@ -146,11 +161,13 @@ export function tick(state, dt) {
 export function serialize(state) {
   return JSON.stringify({
     cash: state.cash,
-    pellets: state.pellets,
+    plastic: state.plastic,
     palletsSold: state.palletsSold,
     hotbar: state.hotbar,
     overflow: state.overflow,
     upgradeLevels: state.upgradeLevels,
+    machineCounts: state.machineCounts,
+    operatorsHired: state.operatorsHired,
     machines: state.machines.map((m) => ({
       key: m.key, row: m.row, col: m.col, hopperAmount: m.hopperAmount,
       progress: m.progress, readyPallets: m.readyPallets, staffed: m.staffed,
@@ -180,11 +197,13 @@ export function loadState() {
     const data = JSON.parse(raw);
     const state = createInitialState();
     state.cash = data.cash ?? state.cash;
-    state.pellets = data.pellets ?? 0;
+    state.plastic = data.plastic ?? 0;
     state.palletsSold = data.palletsSold ?? 0;
     state.hotbar = data.hotbar ?? state.hotbar;
     state.overflow = data.overflow ?? [];
     state.upgradeLevels = { ...state.upgradeLevels, ...(data.upgradeLevels ?? {}) };
+    state.machineCounts = { ...state.machineCounts, ...(data.machineCounts ?? {}) };
+    state.operatorsHired = data.operatorsHired ?? 0;
 
     state.machines = (data.machines ?? []).map((md) => {
       const m = new Machine(md.key, md.row, md.col);

@@ -43,8 +43,8 @@ function drawDepot(ctx, state) {
   ctx.textAlign = 'center';
   ctx.fillText('SUPPLY DEPOT', DEPOT.x + DEPOT.w / 2, DEPOT.y + 24);
 
-  // pellet pile
-  const shown = Math.min(24, Math.round(state.pellets / 20));
+  // plastic pile
+  const shown = Math.min(24, Math.round(state.plastic / 20));
   ctx.fillStyle = '#e8e05a';
   for (let i = 0; i < shown; i++) {
     const col = i % 4;
@@ -56,7 +56,7 @@ function drawDepot(ctx, state) {
 
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 16px sans-serif';
-  ctx.fillText(`${Math.floor(state.pellets)} pellets`, DEPOT.x + DEPOT.w / 2, DEPOT.y + DEPOT.h - 16);
+  ctx.fillText(`${Math.floor(state.plastic)} plastic`, DEPOT.x + DEPOT.w / 2, DEPOT.y + DEPOT.h - 16);
 }
 
 function drawWarehouse(ctx, state) {

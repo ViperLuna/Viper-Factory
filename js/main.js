@@ -39,7 +39,7 @@ canvas.addEventListener('click', (evt) => {
       tryHireOperator(state, machine, onChange);
     } else {
       const boosted = machine.boostClick(CLICK_BOOST_MS);
-      if (!boosted) addToast(state, 'Needs pellets to run');
+      if (!boosted) addToast(state, 'Needs plastic to run');
     }
     onChange();
     return;

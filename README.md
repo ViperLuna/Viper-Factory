@@ -24,23 +24,29 @@ Then open `http://localhost:8000`.
 
 ## How the game works
 
-- **Buy machines** in the Shop (`B`). Real plastic-manufacturing processes:
-  - **Injection Molder** — melts pellets and injects them into a mold. Good
-    for small precise parts.
-  - **Extruder** — continuously pushes melted plastic through a die. Good
-    for pipe, sheet, rod stock.
-  - **Blow Molder** — inflates a hot tube inside a mold. Good for hollow
-    parts like bottles or tanks.
+- **Buy a blueprint** in the Shop (`B`) — a blueprint is a one-time purchase
+  that lets you place that kind of machine. There's no separate mold cost;
+  the blueprint price covers everything. Three blueprints exist, based on
+  real plastic-manufacturing processes:
+  - **Extruder** (cheapest) — continuously pushes melted plastic through a
+    die. Makes **straws**. This is your first buy.
+  - **Injection Molder** — melts plastic and injects it into a mold. Makes
+    **toy parts**.
+  - **Blow Molder** — inflates a hot tube inside a mold. Makes **bottles**.
+  - Buying another of the same blueprint costs more than the last one did —
+    there's no cap, but the price climbs each time.
 - A bought machine lands in your **hotbar** (bottom of screen, slots `1`-`9`).
   Press the number key (or click the slot) to select it, then click an empty
   pad on the factory floor to place it. Buy more machines than you have
   hotbar space for and the extras wait in **Inventory** (`I`).
 - A placed machine does nothing until you **hire an operator** for it — click
-  the machine and pay the one-time hire cost. Operators just stand there;
-  they don't walk around. No operator, no production, regardless of material.
-- Buy **pellets** at the Supply Depot (left side, via the Shop). Your
-  **utility worker** automatically walks pellets from the depot to whichever
-  staffed machine is running low.
+  the machine and pay the one-time hire cost (also climbs with each operator
+  you've hired). Operators just stand there; they don't walk around. No
+  operator, no production, no matter how much plastic is in the hopper.
+- Buy **plastic** at the Supply Depot (left side, via the Shop) — one
+  generic material, no need to track types. Your **utility worker**
+  automatically walks it from the depot to whichever staffed machine is
+  running low.
 - Finished pallets pile up at the machine until your **pallet jack worker**
   walks over, picks them up, and hauls them to the **Warehouse** (right
   side), which sells them for cash automatically.
@@ -48,9 +54,10 @@ Then open `http://localhost:8000`.
   boost — that's the "clicker" half of the game on top of the idle
   automation.
 - Spend cash under **Upgrades & Staff** to hire a second utility worker or
-  pallet jack operator, speed everyone up, carry bigger pellet loads, get a
-  bulk pellet discount, or upgrade to a **towmotor** that carries two pallets
-  at once.
+  pallet jack operator, speed everyone up, carry bigger plastic loads, get a
+  bulk plastic discount, or upgrade to a **towmotor** that carries two
+  pallets at once. No wages/upkeep anywhere — every hire and every blueprint
+  is paid once and it's yours for good.
 - Progress autosaves to `localStorage` in your browser.
 
 All the numbers (machine costs, cycle times, hopper sizes, upgrade costs,

@@ -12,7 +12,7 @@
   <header id="hud">
     <div class="title">🐍 Viper Factory</div>
     <div class="stat">💰 <span id="cashVal">$0</span></div>
-    <div class="stat">🧱 <span id="pelletVal">0</span> pellets</div>
+    <div class="stat">🧱 <span id="plasticVal">0</span> plastic</div>
     <div class="stat">📦 <span id="soldVal">0</span> sold</div>
     <div class="hud-buttons">
       <button id="shopBtn">Shop (B)</button>
@@ -30,14 +30,14 @@
   <div id="shopPanel" class="panel hidden">
     <div class="panel-header">
       <div class="tabs">
-        <button class="tab active" data-tab="machines">Machines</button>
-        <button class="tab" data-tab="pellets">Pellets</button>
+        <button class="tab active" data-tab="machines">Blueprints</button>
+        <button class="tab" data-tab="plastic">Plastic</button>
         <button class="tab" data-tab="upgrades">Upgrades &amp; Staff</button>
       </div>
       <button class="close-btn" data-close="shopPanel">✕</button>
     </div>
     <div id="shopMachines" class="tab-content"></div>
-    <div id="shopPellets" class="tab-content hidden"></div>
+    <div id="shopPlastic" class="tab-content hidden"></div>
     <div id="shopUpgrades" class="tab-content hidden"></div>
   </div>
 
@@ -55,15 +55,19 @@
       <button class="close-btn" data-close="helpPanel">✕</button>
     </div>
     <div class="tab-content help-text">
-      <p><strong>Goal:</strong> run a plastic factory. Buy machines, staff them, keep them fed with
-      pellets, and haul finished pallets to the warehouse to sell them for cash.</p>
+      <p><strong>Goal:</strong> run a plastic factory. Buy machine blueprints, staff them, keep them fed
+      with plastic, and haul finished pallets to the warehouse to sell them for cash.</p>
+      <p>The cheapest blueprint is the <strong>Extruder</strong>, which makes straws &mdash; that's your
+      first buy. Every purchase is one-time (no wages), but buying another of the same blueprint or
+      hiring another operator costs more than the last one did.</p>
       <ol>
-        <li>Open the <strong>Shop</strong> and buy a machine. It lands in your hotbar at the bottom.</li>
+        <li>Open the <strong>Shop</strong> and buy the Extruder blueprint. It lands in your hotbar at
+        the bottom.</li>
         <li>Press the matching number key (or click the slot) to select it, then click an empty
         floor pad to place it.</li>
         <li>Click the placed machine and hire an <strong>operator</strong> to staff it &mdash; unstaffed
-        machines never run.</li>
-        <li>Buy <strong>pellets</strong> in the Shop. Your utility worker(s) automatically carry pellets
+        machines never run, no matter how much plastic they have.</li>
+        <li>Buy <strong>plastic</strong> in the Shop. Your utility worker(s) automatically carry it
         from the depot to any machine running low.</li>
         <li>Once a machine finishes a pallet, your pallet jack worker(s) automatically haul it to the
         warehouse and sell it.</li>

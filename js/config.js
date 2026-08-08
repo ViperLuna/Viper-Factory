@@ -25,55 +25,70 @@ export function padCenter(row, col) {
   };
 }
 
+// Blueprints: what you buy in the shop. No separate "mold" purchase - the
+// blueprint price already covers everything needed to run that machine.
+// All machines eat the same generic "Plastic" material, bought at the depot.
 export const MACHINE_TYPES = {
-  injector: {
-    key: 'injector',
-    name: 'Injection Molder',
-    cost: 60,
-    hopperCapacity: 40,
-    consumePerCycle: 4,
-    cycleTime: 8000,
-    palletValue: 12,
-    color: '#4f8fd6',
-    icon: '⚙️',
-  },
   extruder: {
     key: 'extruder',
     name: 'Extruder',
-    cost: 250,
-    hopperCapacity: 80,
-    consumePerCycle: 10,
-    cycleTime: 11000,
-    palletValue: 38,
+    product: 'Straws',
+    cost: 50,
+    hopperCapacity: 50,
+    consumePerCycle: 5,
+    cycleTime: 9000,
+    palletValue: 10,
+    color: '#4f8fd6',
+    icon: '🥤',
+  },
+  injector: {
+    key: 'injector',
+    name: 'Injection Molder',
+    product: 'Toy Parts',
+    cost: 260,
+    hopperCapacity: 70,
+    consumePerCycle: 9,
+    cycleTime: 12000,
+    palletValue: 34,
     color: '#d68f4f',
-    icon: '🧵',
+    icon: '⚙️',
   },
   blowmolder: {
     key: 'blowmolder',
     name: 'Blow Molder',
-    cost: 900,
-    hopperCapacity: 150,
+    product: 'Bottles',
+    cost: 950,
+    hopperCapacity: 140,
     consumePerCycle: 20,
-    cycleTime: 16000,
-    palletValue: 110,
+    cycleTime: 17000,
+    palletValue: 105,
     color: '#8f4fd6',
-    icon: '🫙',
+    icon: '🍼',
   },
 };
 
-export function operatorHireCost(machineKey) {
-  return Math.round(MACHINE_TYPES[machineKey].cost * 0.4);
+// Blueprints and operators are one-time purchases (no wages), but each
+// additional one of the same kind costs more than the last.
+const MACHINE_COST_GROWTH = 1.15;
+const OPERATOR_COST_GROWTH = 1.15;
+
+export function machineCostFor(key, ownedCount) {
+  return Math.round(MACHINE_TYPES[key].cost * Math.pow(MACHINE_COST_GROWTH, ownedCount));
 }
 
-export const PELLET_UNIT_COST = 0.5;
-export const PELLET_BUNDLES = [50, 100, 500];
+export function operatorCostFor(key, operatorsHiredCount) {
+  return Math.round(MACHINE_TYPES[key].cost * 0.4 * Math.pow(OPERATOR_COST_GROWTH, operatorsHiredCount));
+}
+
+export const PLASTIC_UNIT_COST = 0.4;
+export const PLASTIC_BUNDLES = [25, 75, 250];
 
 // Upgrades: leveled ones scale in cost per level, oneTime ones are bought once.
 export const UPGRADES = [
   {
     id: 'hireUtility',
     name: 'Hire Utility Worker',
-    desc: 'Adds another worker who keeps machine hoppers stocked.',
+    desc: 'Adds another worker who keeps machine hoppers stocked with plastic.',
     max: 3,
     costFor: (level) => 300 * Math.pow(2, level),
   },
@@ -100,15 +115,15 @@ export const UPGRADES = [
   },
   {
     id: 'refillAmount',
-    name: 'Bigger Pellet Bags',
-    desc: '+25% pellets carried per trip.',
+    name: 'Bigger Plastic Loads',
+    desc: '+25% plastic carried per trip.',
     max: 5,
     costFor: (level) => Math.round(120 * Math.pow(1.7, level)),
   },
   {
-    id: 'pelletDiscount',
-    name: 'Bulk Pellet Contract',
-    desc: '-10% pellet purchase price.',
+    id: 'plasticDiscount',
+    name: 'Bulk Plastic Contract',
+    desc: '-10% plastic purchase price.',
     max: 4,
     costFor: (level) => Math.round(200 * Math.pow(1.8, level)),
   },
@@ -122,5 +137,5 @@ export const UPGRADES = [
 ];
 
 export const CLICK_BOOST_MS = 400;
-export const SAVE_KEY = 'viper-factory-save-v1';
+export const SAVE_KEY = 'viper-factory-save-v2';
 export const AUTOSAVE_INTERVAL_MS = 15000;
