@@ -2,7 +2,11 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # This repo's default branch is claude/plastic-factory-game-217pgm, not
+    # main (GitHub picks the first branch ever pushed as the default when a
+    # repo is created without an initial commit). Deploy from whichever one
+    # is actually in use so a plain push always publishes.
+    branches: [main, claude/plastic-factory-game-217pgm]
   workflow_dispatch:
 
 permissions:
