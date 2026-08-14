@@ -1,6 +1,9 @@
 import {
   MACHINE_TYPES, PRODUCTS, PALLET_CAPACITY, padCenter, DEPOT, WAREHOUSE,
 } from './config.js';
+import {
+  machineApproachPoints, doorApproachPoints, pathBetween, pathFromDoor,
+} from './pathing.js';
 
 let nextId = 1;
 export function makeId() {
@@ -62,26 +65,37 @@ export class Machine {
   }
 }
 
-// Simple point-to-point walker used by both worker types.
+// Walker moves along a queued list of waypoints rather than straight to a
+// single destination, so callers can route it down the walkway aisles
+// instead of cutting through other machines' plots.
 class Walker {
   constructor(x, y) {
     this.x = x;
     this.y = y;
     this.state = 'idle';
-    this.destX = x;
-    this.destY = y;
+    this.path = [];
     this.walkT = 0; // for bob animation
   }
 
-  moveToward(dt, speed) {
-    const dx = this.destX - this.x;
-    const dy = this.destY - this.y;
+  setPath(points) {
+    this.path = points.slice();
+  }
+
+  // Advances toward the next waypoint; returns true once the whole path
+  // has been consumed (i.e. arrived at the final destination).
+  followPath(dt, speed) {
+    if (this.path.length === 0) return true;
+    const target = this.path[0];
+    const dx = target.x - this.x;
+    const dy = target.y - this.y;
     const dist = Math.hypot(dx, dy);
     const step = speed * (dt / 1000);
     if (dist <= step || dist === 0) {
-      this.x = this.destX;
-      this.y = this.destY;
-      return true;
+      this.x = target.x;
+      this.y = target.y;
+      this.path.shift();
+      this.walkT += dt;
+      return this.path.length === 0;
     }
     this.x += (dx / dist) * step;
     this.y += (dy / dist) * step;
@@ -99,58 +113,45 @@ export class UtilityWorker extends Walker {
   }
 
   update(dt, speed, refillAmount, state) {
-    const arrived = () => this.moveToward(dt, speed);
-
     if (this.state === 'idle') {
+      if (state.plastic <= 0) return;
       const target = pickMachineNeedingFill(state.machines, this.id);
       if (target) {
         target.reservedByUtility = this.id;
         this.targetMachine = target;
-        this.destX = DEPOT.doorX;
-        this.destY = DEPOT.doorY;
-        this.state = 'toDepot';
-      }
-      return;
-    }
-
-    if (this.state === 'toDepot') {
-      if (arrived()) {
-        const m = this.targetMachine;
-        if (!m || state.plastic <= 0) {
-          if (m) m.reservedByUtility = null;
-          this.targetMachine = null;
-          this.state = 'idle';
-          return;
-        }
-        const need = m.hopperCapacity - m.hopperAmount;
+        const need = target.hopperCapacity - target.hopperAmount;
         const load = Math.min(refillAmount, need, state.plastic);
         this.cargo = load;
         state.plastic -= load;
-        this.destX = m.x;
-        this.destY = m.y + 45;
+        this.setPath(pathFromDoor(
+          doorApproachPoints(DEPOT.doorX, DEPOT.doorY, 'left'),
+          machineApproachPoints(target, 'left'),
+        ));
         this.state = 'toMachine';
       }
       return;
     }
 
     if (this.state === 'toMachine') {
-      if (arrived()) {
+      if (this.followPath(dt, speed)) {
         const m = this.targetMachine;
         if (m) {
           m.hopperAmount = Math.min(m.hopperCapacity, m.hopperAmount + this.cargo);
           m.reservedByUtility = null;
         }
         this.cargo = 0;
+        this.setPath(pathBetween(
+          machineApproachPoints(m, 'left'),
+          doorApproachPoints(DEPOT.doorX, DEPOT.doorY, 'left'),
+        ));
         this.targetMachine = null;
-        this.destX = DEPOT.doorX;
-        this.destY = DEPOT.doorY;
         this.state = 'returning';
       }
       return;
     }
 
     if (this.state === 'returning') {
-      if (arrived()) this.state = 'idle';
+      if (this.followPath(dt, speed)) this.state = 'idle';
     }
   }
 }
@@ -180,35 +181,37 @@ export class Hauler extends Walker {
     this.cargoValue = 0;
     this.capacity = 1;
     this.targetMachine = null;
+    this.atMachine = null; // machine currently standing at, if not at the warehouse
+  }
+
+  currentApproachPoint() {
+    return this.atMachine
+      ? machineApproachPoints(this.atMachine, 'right')
+      : doorApproachPoints(WAREHOUSE.doorX, WAREHOUSE.doorY, 'right');
   }
 
   update(dt, speed, state) {
-    const arrived = () => this.moveToward(dt, speed);
-
     if (this.state === 'idle') {
-      if (this.cargoCount >= this.capacity) {
-        this.destX = WAREHOUSE.doorX;
-        this.destY = WAREHOUSE.doorY;
-        this.state = 'toWarehouse';
-        return;
+      if (this.cargoCount < this.capacity) {
+        const target = pickMachineWithPallets(state.machines, this.id);
+        if (target) {
+          target.reservedByHauler = this.id;
+          this.targetMachine = target;
+          const buildPath = this.atMachine ? pathBetween : pathFromDoor;
+          this.setPath(buildPath(this.currentApproachPoint(), machineApproachPoints(target, 'right')));
+          this.state = 'toMachine';
+          return;
+        }
       }
-      const target = pickMachineWithPallets(state.machines, this.id);
-      if (target) {
-        target.reservedByHauler = this.id;
-        this.targetMachine = target;
-        this.destX = target.x;
-        this.destY = target.y + 45;
-        this.state = 'toMachine';
-      } else if (this.cargoCount > 0) {
-        this.destX = WAREHOUSE.doorX;
-        this.destY = WAREHOUSE.doorY;
+      if (this.cargoCount > 0) {
+        this.setPath(pathBetween(this.currentApproachPoint(), doorApproachPoints(WAREHOUSE.doorX, WAREHOUSE.doorY, 'right')));
         this.state = 'toWarehouse';
       }
       return;
     }
 
     if (this.state === 'toMachine') {
-      if (arrived()) {
+      if (this.followPath(dt, speed)) {
         const m = this.targetMachine;
         if (m) {
           const take = Math.min(this.capacity - this.cargoCount, m.readyPallets);
@@ -217,6 +220,7 @@ export class Hauler extends Walker {
           this.cargoValue += take * m.product.palletValue;
           m.reservedByHauler = null;
         }
+        this.atMachine = m;
         this.targetMachine = null;
         this.state = 'idle';
       }
@@ -224,11 +228,12 @@ export class Hauler extends Walker {
     }
 
     if (this.state === 'toWarehouse') {
-      if (arrived()) {
+      if (this.followPath(dt, speed)) {
         state.cash += this.cargoValue;
         state.palletsSold += this.cargoCount;
         this.cargoCount = 0;
         this.cargoValue = 0;
+        this.atMachine = null;
         this.state = 'idle';
       }
     }

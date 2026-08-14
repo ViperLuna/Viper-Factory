@@ -109,6 +109,8 @@ index.html          Page shell + panels (shop, inventory, slots, tutorial banner
 css/style.css        All styling
 js/config.js         Every tunable number: machines, blueprints, upgrades, save slots
 js/entities.js       Machine, UtilityWorker, Hauler classes + their behavior
+js/pathing.js        Corridor-based routing so workers stay in the walkway
+                      gaps between plots instead of cutting through them
 js/state.js          Central game state, save-slot persistence, purchase logic
 js/tutorial.js       The step list for the guided first-time tutorial
 js/render.js         Canvas drawing (factory floor, depot, warehouse, sprites)
